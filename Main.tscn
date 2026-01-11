@@ -32,15 +32,12 @@ script = ExtResource("1_glv2v")
 
 [node name="World" type="Node3D" parent="."]
 script = ExtResource("2_uu6xs")
-RenderDistance = 8
 
 [node name="Node" type="Node" parent="World"]
 script = ExtResource("3_cm0pq")
 
 [node name="Player" parent="." node_paths=PackedStringArray("world", "hotbar") instance=ExtResource("3_r0du0")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 80, 0)
-speed = 4.0
-GravityScale = 16.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 240, 7.5)
 world = NodePath("../World")
 hotbar = NodePath("../CanvasLayer/Control/Hotbar")
 
@@ -81,13 +78,14 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = 203.0
-offset_top = 487.0
-offset_right = 359.0
-offset_bottom = 527.0
+offset_left = 572.314
+offset_top = 860.0
+offset_right = 728.314
+offset_bottom = 900.0
 grow_horizontal = 2
 grow_vertical = 0
 scale = Vector2(4.636926, 1.8814876)
+alignment = 1
 script = ExtResource("5_c2ibq")
 ItemDatabase = ExtResource("6_3dxm6")
 
