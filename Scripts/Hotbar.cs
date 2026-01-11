@@ -12,6 +12,9 @@ public partial class Hotbar : Control
 	public Item SelectedItem => items[selectedIndex];
 	[Export] public ItemDatabase ItemDatabase;
 	
+	private Vector2 windowSize;
+	private float xWidth;
+	
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
@@ -101,5 +104,9 @@ public partial class Hotbar : Control
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
+		windowSize = GetWindow().Size;
+		xWidth = windowSize.X / 409.747682f;
+		this.Scale = new Vector2(xWidth, xWidth / 2.4651781f);
+		this.Position = new Vector2((windowSize.X - 156 * xWidth)/ 2.0f, windowSize.Y + (windowSize.X * -0.06f));
 	}
 }
