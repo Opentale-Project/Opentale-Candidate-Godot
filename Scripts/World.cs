@@ -49,7 +49,7 @@ public partial class World : Node3D
 		{
 			var key = kv.Key;
 			int dx = key.X - px;
-			int dy = key.Y = py;
+			int dy = key.Y - py;
 			int dz = key.Z - pz;
 
 			if (Math.Abs(dx) > RenderDistanceHorizontal || Math.Abs(dy) > RenderDistanceVertical || Math.Abs(dz) > RenderDistanceHorizontal) toRemove.Add(key);
