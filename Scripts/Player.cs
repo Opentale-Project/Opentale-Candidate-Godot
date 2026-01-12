@@ -60,7 +60,6 @@ public partial class Player : CharacterBody3D
 		//if (Input.IsActionJustReleased("crouch")) cam.GlobalPosition.y = cam.GlobalPosition.y + 1f;
 		
 		// === Get Modifiers
-		//GD.Print(Input.Get("sprint"));
 		if(Input.IsActionPressed("sprint") && Input.IsActionPressed("move_forward")) currentSpeed = speed * sprintMultiplier;
 		else if (Input.IsActionPressed("crouch")) currentSpeed = speed * sneakMultiplier;
 		else currentSpeed = speed;

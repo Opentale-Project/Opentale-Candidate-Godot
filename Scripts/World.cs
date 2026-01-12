@@ -6,17 +6,19 @@ using VoxelEngine.Scripts;
 
 public partial class World : Node3D
 {
-	[Export] public int RenderDistance = 12;
+	[Export] public int RenderDistanceHorizontal = 12;
+	[Export] public int RenderDistanceVertical = 6;
 	public PackedScene chunk_scene;
 
-	private System.Collections.Generic.Dictionary<Vector2I, Chunk> chunks = new();
-	private Queue<Vector2I> loadQueue = new();
+	private System.Collections.Generic.Dictionary<Vector3I, Chunk> chunks = new();
+	private Queue<Vector3I> loadQueue = new();
 	public Player player;
 	public NoiseManager noiseManager;
 	
 	private bool queueActive;
-	private Vector2I oldKey;
-	private Vector2I newKey = new Vector2I(-256,-256);
+	private Vector3I oldKey;
+	private Vector3I newKey = new Vector3I(-256,-256,-256);
+	private int yOff = 0;
 
 	public override void _Ready()
 	{
@@ -39,17 +41,18 @@ public partial class World : Node3D
 		UpdateChunkQueue();
 	}
 
-	private void UnloadFarChunks(int px, int pz)
+	private void UnloadFarChunks(int px, int py, int pz)
 	{
-		var toRemove = new System.Collections.Generic.List<Vector2I>();
+		var toRemove = new System.Collections.Generic.List<Vector3I>();
 
 		foreach (var kv in chunks)
 		{
 			var key = kv.Key;
 			int dx = key.X - px;
-			int dz = key.Y - pz;
+			int dy = key.Y = py;
+			int dz = key.Z - pz;
 
-			if (Math.Abs(dx) > RenderDistance || Math.Abs(dz) > RenderDistance) toRemove.Add(key);
+			if (Math.Abs(dx) > RenderDistanceHorizontal || Math.Abs(dy) > RenderDistanceVertical || Math.Abs(dz) > RenderDistanceHorizontal) toRemove.Add(key);
 		}
 
 		foreach (var key in toRemove)
@@ -60,41 +63,46 @@ public partial class World : Node3D
 	}
 	
 	
-
 	private void UpdateChunkQueue()
 	{
 		if (player == null) return;
 		
 		int playerChunkX = Mathf.FloorToInt(player.GlobalPosition.X / Chunk.ChunkSizeHorizontal);
+		int playerChunkY = Mathf.FloorToInt(player.GlobalPosition.Y / Chunk.ChunkSizeVertical);
 		int playerChunkZ = Mathf.FloorToInt(player.GlobalPosition.Z / Chunk.ChunkSizeHorizontal);
 		
 		// === Check if player chunk changed
 		oldKey = newKey;
-		newKey = new(playerChunkX, playerChunkZ);
+		newKey = new(playerChunkX, playerChunkY, playerChunkZ);
 		if (oldKey == newKey) return;
 		
 		//TODO: if displacement is by 1 chunk, only call new line of chunks, not the whole function
 		
-		queueChunks(playerChunkX, playerChunkZ);
-		UnloadFarChunks(playerChunkX, playerChunkZ);
+		queueChunks(playerChunkX, playerChunkY, playerChunkZ);
+		UnloadFarChunks(playerChunkX, playerChunkY, playerChunkZ);
 	}
 	
-	private void queueChunks(int cX, int cZ)
+	private void queueChunks(int cX, int cY, int cZ)
 	{
-		queueChunk(cX, cZ);
-		for (int iter = 1; iter <= RenderDistance; iter++)
+		for (int yy = 0; yy < Chunk.NumChunksVertical; yy++)
 		{
-			for (int x = -iter + 1; x <=  iter; x++) { queueChunk(cX + x   , cZ + iter); }
-			for (int z =  iter - 1; z >= -iter; z--) { queueChunk(cX + iter, cZ + z   ); }
-			for (int x =  iter - 1; x >= -iter; x--) { queueChunk(cX + x   , cZ - iter); }
-			for (int z = -iter + 1; z <=  iter; z++) { queueChunk(cX - iter, cZ + z   ); }
+			queueC(cX, yy, cZ);
 		}
-		//queueActive = false;
+		for (int h = 1; h <= RenderDistanceHorizontal; h++)
+		{
+			for (int yy = 0; yy < Chunk.NumChunksVertical; yy++)
+			{
+				for (int x = -h + 1; x <=  h; x++) { queueC(cX + x, yy, cZ + h); }
+				for (int z =  h - 1; z >= -h; z--) { queueC(cX + h, yy, cZ + z); }
+				for (int x =  h - 1; x >= -h; x--) { queueC(cX + x, yy, cZ - h); }
+				for (int z = -h + 1; z <=  h; z++) { queueC(cX - h, yy, cZ + z); }
+			}
+		}
 	}
 	
-	private void queueChunk(int x, int z)
+	private void queueC(int x, int y, int z)
 	{
-		Vector2I key = new(x, z);
+		Vector3I key = new(x, y, z);
 		if(!chunks.ContainsKey(key) && !loadQueue.Contains(key)) loadQueue.Enqueue(key);
 		//else GD.Print("#WARN#: Chunk in queue checked for enqueue action, not added again.");
 	}
@@ -105,9 +113,9 @@ public partial class World : Node3D
 		{
 			if (loadQueue.Count > 0)
 			{
-				Vector2I key = loadQueue.Dequeue();
+				Vector3I key = loadQueue.Dequeue();
 
-				await LoadChunkAsync(key.X, key.Y);
+				await LoadChunkAsync(key.X, key.Y, key.Z);
 
 				//await Task.Delay(1);
 			}
@@ -116,20 +124,21 @@ public partial class World : Node3D
 		}
 	}
 
-	private async Task LoadChunkAsync(int cx, int cz)
+	private async Task LoadChunkAsync(int cx, int cy, int cz)
 	{
-		Vector2I key = new(cx, cz);
+		Vector3I key = new(cx, cy, cz);
 
 		if (chunks.ContainsKey(key)) return;
 
 		Chunk chunk = chunk_scene.Instantiate<Chunk>();
 
 		chunk.worldX = cx;
+		chunk.worldY = cy;
 		chunk.worldZ = cz;
 
 		chunk.Position = new Vector3(
 			cx * Chunk.ChunkSizeHorizontal,
-			0,
+			cy * Chunk.ChunkSizeVertical,
 			cz * Chunk.ChunkSizeHorizontal
 		);
 		
@@ -141,19 +150,20 @@ public partial class World : Node3D
 
 	public bool WorldToBlockCoords(
 		Vector3 worldPos,
-		out Vector2I chunkCoord,
+		out Vector3I chunkCoord,
 		out Vector3I blockPos
 	) {
 		// Convert world coords → integer block coords
 		int bx = Mathf.RoundToInt(worldPos.X);
-		int by = Mathf.RoundToInt(worldPos.Y);
+		int bY = Mathf.RoundToInt(worldPos.Y);
 		int bz = Mathf.RoundToInt(worldPos.Z);
 
 		// Which chunk?
 		int cx = Mathf.FloorToInt((float)bx / Chunk.ChunkSizeHorizontal);
+		int cy = Mathf.FloorToInt((float)bY / Chunk.ChunkSizeVertical  );
 		int cz = Mathf.FloorToInt((float)bz / Chunk.ChunkSizeHorizontal);
 
-		chunkCoord = new Vector2I(cx, cz);
+		chunkCoord = new Vector3I(cx, cy, cz);
 
 		// Chunk missing = fail
 		if (!chunks.TryGetValue(chunkCoord, out Chunk chunk))
@@ -164,11 +174,12 @@ public partial class World : Node3D
 
 		// Local block coords inside chunk
 		int localX = bx - cx * Chunk.ChunkSizeHorizontal;
+		int localY = bY - cy * Chunk.ChunkSizeVertical  ;
 		int localZ = bz - cz * Chunk.ChunkSizeHorizontal;
 
 		// Bounds check (ALL out-of-range returns must set blockPos)
 		if (localX < 0 || localX >= Chunk.ChunkSizeHorizontal ||
-			by < 0      || by >= Chunk.ChunkSizeVertical   ||
+			localY < 0 || localY >= Chunk.ChunkSizeVertical   ||
 			localZ < 0 || localZ >= Chunk.ChunkSizeHorizontal)
 		{
 			blockPos = default;
@@ -176,7 +187,7 @@ public partial class World : Node3D
 		}
 
 		// VALID → assign and return true
-		blockPos = new Vector3I(localX, by, localZ);
+		blockPos = new Vector3I(localX, localY, localZ);
 		return true;
 	}
 

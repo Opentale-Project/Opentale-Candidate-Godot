@@ -8,7 +8,9 @@ using Array = Godot.Collections.Array;
 public partial class Chunk : Node3D
 {
 	public const int ChunkSizeHorizontal = 16;
-	public const int ChunkSizeVertical = 512;
+	public const int ChunkSizeVertical = 256;
+	public const int NumChunksVertical = 2;
+	public const int WorldHeight = (int)(ChunkSizeVertical * NumChunksVertical);
 	public byte[,,] blocks;
 	public Voxel[,,] voxels = new Voxel[ChunkSizeHorizontal, ChunkSizeVertical, ChunkSizeHorizontal];
 	private MeshInstance3D meshInstance;
@@ -19,12 +21,14 @@ public partial class Chunk : Node3D
 	private bool isCurrentTransparent;
 
 	public int worldX = 0;
+	public int worldY = 0;
 	public int worldZ = 0;
 	
 	private RandomNumberGenerator rng = new();
 	
-	public const int maxGroundHeight = 200;
-	public const int lowestCaveDepth = 10;
+	public const int maxGroundHeight = (int)(WorldHeight * 2.56);
+	public const int lowestCaveDepth = (int)(WorldHeight * 0.01953125);
+	
 	
 	public NoiseManager noiseManager;
 
@@ -57,7 +61,6 @@ public partial class Chunk : Node3D
 	{
 		if (x < 0 || x >= ChunkSizeHorizontal || y < 0 || y >= ChunkSizeVertical || z < 0 ||
 			z >= ChunkSizeHorizontal) return 0;
-		
 		return blocks[x, y, z];
 	}
 
@@ -156,12 +159,13 @@ public partial class Chunk : Node3D
 
 				for (int y = 0; y < ChunkSizeVertical; y++)
 				{
+					int worldY = this.worldY * ChunkSizeVertical + y;
 					VoxelType type;
 
-					if (y > terrainHeight) type = VoxelType.Air;
-					else if (y == terrainHeight) type = VoxelType.Grass;
-					else if (y >= terrainHeight - 4) type = VoxelType.Dirt;
-					else if (y == 0) type = VoxelType.DepthRock;
+					if (worldY > terrainHeight) type = VoxelType.Air;
+					else if (worldY == terrainHeight) type = VoxelType.Grass;
+					else if (worldY >= terrainHeight - 4) type = VoxelType.Dirt;
+					else if (worldY == 0) type = VoxelType.DepthRock;
 					else type = VoxelType.Stone;
 					
 					voxels[x, y, z] = new Voxel { type = type };
