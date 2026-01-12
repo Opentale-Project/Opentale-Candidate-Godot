@@ -75,7 +75,8 @@ public partial class World : Node3D
 		oldKey = newKey;
 		newKey = new(playerChunkX, playerChunkY, playerChunkZ);
 		if (oldKey == newKey) return;
-		
+		else loadQueue.Clear();
+				
 		//TODO: if displacement is by 1 chunk, only call new line of chunks, not the whole function
 		
 		queueChunks(playerChunkX, playerChunkY, playerChunkZ);
